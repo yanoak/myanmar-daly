@@ -1,21 +1,70 @@
 <!DOCTYPE html>
 <style>
 
+@font-face {
+    font-family: 'mm_font';
+    src: url('fonts/myanmarcensus.woff2') format('woff2'),
+      url('fonts/myanmarcensus.woff') format('woff'),
+      url('fonts/myanmarcensus.ttf') format('truetype');
+}  
+  
 svg {
-  font: 12px sans-serif;
+  font-family: 'mm_font', Fallback, sans-serif;
+  font: 12px;
+}
+  
+body {
+  font-family: 'mm_font', Fallback, sans-serif;
+  font: 12px;
+}
+  
+p {
+  font-family: 'mm_font', Fallback, sans-serif;
+  font: 10px;
 }
 
 a:hover tspan:first-child {
   text-decoration: none;
 }
 
-tspan:last-child {
-  font-size: 12px;
-  fill-opacity: 0.7;
+tspan {
+  font-size: 11px;
+  fill-opacity: 0.9;
+  fill: #fff;
+  pointer-events: none;
 }
+  
+.tooltip  {
+	position: absolute;
+  stroke: #444;
+	top: 3000px;
+	left: 100px;
+  -moz-border-radius:3px;
+	border-radius: 3px;
+  border: 2px solid #000;
+	/* background: #222222; */
+  background: #fff;
+	opacity: .9;
+	/* color: #eeeeee; */
+  color: black;
+	padding: 0px 10px;
+	width: 300px;
+	font-size: 12px;
+	z-index: 10;
+  -webkit-touch-callout: none; /* iOS Safari */
+  -webkit-user-select: none;   /* Chrome/Safari/Opera */
+  -khtml-user-select: none;    /* Konqueror */
+  -moz-user-select: none;      /* Firefox */
+  -ms-user-select: none;       /* Internet Explorer/Edge */
+  user-select: none;     
+}
+  
+rect {
+  stroke-width: 2;
+}  
 
 </style>
-<svg width="1200" height="500"></svg>
+<svg width="1200" height="600"></svg>
 <script src="https://d3js.org/d3.v4.min.js"></script>
 <script>
 
@@ -33,29 +82,28 @@ var colorDisease = function(d) {
 var format = d3.format(",d");
 
 var treemap = d3.treemap()
-    .tile(d3.treemapSquarify.ratio(2))
+    .tile(d3.treemapSquarify.ratio(1.25))
     .size([width, height])
     .round(true)
     .padding(1);
 
-
+var div = d3.select("body").append("div")	
+    .attr("class", "tooltip")
+    .style("opacity", 0);
 
 d3.csv("data/dalys_mm.csv", function(d) {
   d.value = +d.value;
   return d;
 }, function(error,data) {
   if (error) throw error;
-  console.log(data);
+//  console.log(data);
   
   var root = d3.stratify()
       .id(function(d) { return d.path; })
       .parentId(function(d) { 
-        console.log(d.path);
-        console.log(d.path.substring(0, d.path.lastIndexOf("|")));
         return d.path.substring(0, d.path.lastIndexOf("|")); 
       })(data)
-      .sum(function(d) { 
-        console.log(d);
+      .sum(function(d) {
         return +d.value; 
       })
       .sort(function(a, b) { return b.height - a.height || b.value - a.value; });
@@ -75,9 +123,11 @@ d3.csv("data/dalys_mm.csv", function(d) {
         return d.width;
 //        return d.x1 - d.x0;
       })
-      .attr("height", function(d) { return d.y1 - d.y0; })
+      .attr("height", function(d) { 
+        d.height = d.y1 - d.y0;
+        return d.height; 
+      })
       .attr("fill", function(d) { 
-        console.log(d);
         var a = d.ancestors(); 
 //        return color(a[a.length - 2].id); 
         return colorDisease(d.data.Level_1); 
@@ -89,60 +139,99 @@ d3.csv("data/dalys_mm.csv", function(d) {
 //      .attr("xlink:href", function(d) { return "#" + d.id; });
 
   var label = cell.append("text");
-//      .attr("clip-path", function(d) { return "url(#clip-" + d.id + ")"; });
-
-//  label.append("tspan")
-//      .attr("x", 4)
-//      .attr("y", 13)
-//      .text(function(d) { return d.data.path.substring(d.data.path.lastIndexOf("/") + 1, d.data.path.lastIndexOf(".")); });
-
-  label.append("tspan")
-      .attr("x", 6)
-      .attr("y", 17)
-      .text(function(d) { 
-//        console.log(d.data.Cause_mm);
-        return d.data.Cause_mm; 
-      })
-      .each(function(d) {
-        d.textWidth = this.getBBox().width;
-//        console.log(d);
-      });
   
-  d3.selectAll("tspan")
-      .text(function(d) { 
-        console.log(d);
-        if (d.textWidth > d.width-8) 
-//          return "";         
-          return d.data.Cause_mm; 
-        else
-          return d.data.Cause_mm; 
-      })
+  d3.selectAll("text")
+    .each(function(d) {
+//      d.textWidth = this.getBBox().width;
+//      console.log(d);
+      wrap(this,d.data.Cause_mm,d.width,d.height);
+    })
     
+  d3.selectAll("rect")
+    .on("mouseover",function(d) {
+//      console.log(d.data.Cause_en);
+      d3.select(this).attr("stroke","#444");
+  
+      
+      var content;
+      
+//      console.log(d.othLang);
+      
+      content = "<p> " + d.data.Level_1 + " > </br>";
+      content += d.data.Level_2 + " > </p>";
+      content += "<h3>" + d.data.Cause_en + " </br>";
+      content += d.data.Cause_mm + "</h3>";
+    
+      if (d.data.value > 0.001)
+        content += "<b><big>" + d3.format(".2%")(d.data.value) + "</big> </b>";
+      else
+        content += "<b><big>" + d3.format(".4%")(d.data.value) + "</big> </b>";
+    
+    
+      content += "of total DALYs</br>(" + d3.format(".4%")(d.data.Lower_bound) + " - " + d3.format(".4%")(d.data.Upper_bound) + ") </br></br>";
 
-//  cell.append("title")
-//      .text(function(d) { return d.id + "\n" + format(d.value); });
+      
+      div.transition()		
+        .duration(100)
+        .style("display", "inline")
+        .style("opacity", .9);
+
+      if (d3.event.pageX + 300 < width && d3.event.pageY + 100 < height) {
+        div.html(content)	
+        .style("left", (d3.event.pageX + 30) + "px")		
+        .style("top", (d3.event.pageY - 28) + "px");	  
+      } else if (d3.event.pageX + 300 >= width && d3.event.pageY + 100 < height){
+        div.html(content)	
+        .style("left", (d3.event.pageX - 370) + "px")		
+        .style("top", (d3.event.pageY - 28) + "px");	  
+      } else if (d3.event.pageX + 300 < width && d3.event.pageY + 100 >= height) {
+        div.html(content)	
+        .style("left", (d3.event.pageX - 30) + "px")		
+        .style("top", (d3.event.pageY - 178) + "px");	  
+      } else {
+        div.html(content)	
+        .style("left", (d3.event.pageX - 370) + "px")		
+        .style("top", (d3.event.pageY - 178) + "px");	  
+      }
+    
+    
+    })
+    .on("mouseout",function(d) {
+//      console.log(d.data.Cause_en);
+      d3.select(this).attr("stroke","none");
+    
+      div.transition()		
+        .duration(100)	
+        .style("display", "none")
+        .style("opacity", 0);	    
+    });
+  
 });
   
-function wrap(element, text, width) {
- 
-    console.log(element.attr);
-    var words = text.split(/\s+/).reverse(),
-        word,
-        line = [],
-        lineNumber = 0,
-        lineHeight = 1.1, // ems
-        y = element.attr("y"),
-        dy = parseFloat(text.attr("dy")),
-        tspan = text.text(null).append("tspan").attr("x", 0).attr("y", y).attr("dy", dy + "em");
-    while (word = words.pop()) {
-      line.push(word);
+function wrap(element, words, width, height) {
+//  console.log(height);
+  var text = d3.select(element),
+      words = words.trim().split(/\s+/).reverse(),
+      word,
+      line = [],
+      lineNumber = 0,
+      lineHeight = 1.2, // ems
+      y = 15,
+      x = 4,
+      dy = 0,
+      em2Px = 11, // font size
+      tspan = text.text(null).append("tspan").attr("x", x).attr("y", y).attr("dy", dy + "em");
+  while ((word = words.pop()) 
+        && ((lineNumber+1) * lineHeight)* em2Px + y <  height) {
+//    console.log((lineNumber * lineHeight)* em2Px + y);
+    line.push(word);
+    tspan.text(line.join(" "));
+    if (tspan.node().getComputedTextLength() > width-x) {
+      line.pop();
       tspan.text(line.join(" "));
-      if (tspan.node().getComputedTextLength() > width) {
-        line.pop();
-        tspan.text(line.join(" "));
-        line = [word];
-        tspan = text.append("tspan").attr("x", 0).attr("y", y).attr("dy", ++lineNumber * lineHeight + dy + "em").text(word);
-      }
+      line = [word];
+      tspan = text.append("tspan").attr("x", x).attr("y", y).attr("dy", ++lineNumber * lineHeight + dy + "em").text(word);
     }
+  }
 }
 </script>
