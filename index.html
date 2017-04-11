@@ -30,7 +30,7 @@ a:hover tspan:first-child {
 tspan {
   font-size: 11px;
   fill-opacity: 0.9;
-  fill: #fff;
+  fill: #000;
   pointer-events: none;
 }
   
@@ -75,7 +75,7 @@ var svg = d3.select("svg"),
 var color = d3.scaleOrdinal(d3.schemeCategory20);
 var colorDisease = function(d) {
   if (d == "Non-communicable diseases") return "#3399ff";
-  if (d == "Communicable, maternal, neonatal, and nutritional diseases") return "#ff3333";
+  if (d == "Communicable, maternal, neonatal, and nutritional diseases") return "#ff6666";
   if (d == "Injuries") return "#009966";
 };
 
