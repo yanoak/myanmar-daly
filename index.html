@@ -144,7 +144,7 @@ d3.csv("data/dalys_mm.csv", function(d) {
     .each(function(d) {
 //      d.textWidth = this.getBBox().width;
 //      console.log(d);
-      wrap(this,d.data.Cause_mm,d.width,d.height);
+      wrap(this,d.data.Cause_mm_uni_rev,d.width,d.height);
     })
     
   d3.selectAll("rect")
@@ -160,7 +160,7 @@ d3.csv("data/dalys_mm.csv", function(d) {
       content = "<p> " + d.data.Level_1 + " > </br>";
       content += d.data.Level_2 + " > </p>";
       content += "<h3>" + d.data.Cause_en + " </br>";
-      content += d.data.Cause_mm + "</h3>";
+      content += d.data.Cause_mm_uni_rev + "</h3>";
     
       if (d.data.value > 0.001)
         content += "<b><big>" + d3.format(".2%")(d.data.value) + "</big> </b>";
